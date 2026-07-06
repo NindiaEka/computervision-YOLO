@@ -1,0 +1,24 @@
+# Python cache
+__pycache__/
+
+# Virtual environment
+.venv/
+
+# Editor settings
+.vscode/
+
+# Training artifacts
+experiments/
+datasets/
+trained_models/
+
+# Model files
+*.pt
+*.onnx
+*.engine
+
+# Logs
+*.log
+
+# Test cache
+.pytest_cache/

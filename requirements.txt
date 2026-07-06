@@ -1,0 +1,7 @@
+ultralytics
+roboflow
+PyYAML
+torch
+torchvision
+opencv-python
+numpy

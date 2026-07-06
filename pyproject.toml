@@ -1,0 +1,18 @@
+[project]
+name = "computer-vision-training-framework"
+version = "0.1.0"
+description = "Internal Computer Vision Training Framework using Ultralytics YOLO11"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "ultralytics",
+    "roboflow",
+    "pyyaml",
+    "torch",
+    "torchvision",
+    "opencv-python",
+    "numpy",
+]
+
+[tool.uv]
+package = false

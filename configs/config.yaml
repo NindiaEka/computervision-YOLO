@@ -1,0 +1,63 @@
+# ==============================================================================
+# Framework Configuration File
+# Computer Vision Training with Ultralytics YOLO11
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Project Configurations
+# ------------------------------------------------------------------------------
+project:
+  name: "YOLO11_Object_Detection"     # Name of the project/experiment
+  description: "Default object detection project using YOLO11"
+
+# ------------------------------------------------------------------------------
+# Roboflow Configurations
+# Settings for automatically downloading datasets from Roboflow
+# ------------------------------------------------------------------------------
+roboflow:
+  workspace: "your-workspace-name"    # Roboflow workspace name
+  project: "your-project-name"        # Roboflow project name
+  version: 1                          # Dataset version to download
+  api_key: "YOUR_ROBOFLOW_API_KEY"    # Your Roboflow API Key
+
+# ------------------------------------------------------------------------------
+# Model Configurations
+# ------------------------------------------------------------------------------
+model:
+  pretrained_path: "yolo11n.pt"       # Path or name of the pretrained YOLO11 model (e.g., yolo11n.pt, yolo11s.pt, yolo11m.pt)
+  task: "detect"                      # Ultralytics task (detect, segment, classify, pose, obb)
+
+# ------------------------------------------------------------------------------
+# Training Configurations
+# Ultralytics YOLO training arguments
+# ------------------------------------------------------------------------------
+training:
+  epochs: 100                         # Number of training epochs
+  batch: 16                           # Batch size (set to -1 for AutoBatch)
+  imgsz: 640                          # Image size (pixels)
+  device: ""                          # Device to run on (e.g., 'cpu', '0', '0,1'). Leave empty for auto-detect
+  optimizer: "auto"                   # Optimizer (auto, SGD, Adam, AdamW, NAdam, RAdam, RMSProp)
+  lr0: 0.01                           # Initial learning rate
+  lrf: 0.01                           # Final learning rate (lr0 * lrf)
+  patience: 50                        # Early stopping patience (epochs without improvement)
+  workers: 8                          # Number of worker threads for data loading
+  exist_ok: False                     # Whether to overwrite existing experiment folder
+
+# ------------------------------------------------------------------------------
+# Validation Configurations
+# Ultralytics YOLO validation arguments
+# ------------------------------------------------------------------------------
+validation:
+  conf: 0.25                          # Confidence threshold for validation
+  iou: 0.6                            # NMS IoU threshold for validation
+  half: True                          # Use half precision (FP16)
+  plots: True                         # Save validation plots
+
+# ------------------------------------------------------------------------------
+# Output & System Directories
+# ------------------------------------------------------------------------------
+output:
+  datasets_dir: "datasets"            # Where to download and extract datasets
+  pretrained_dir: "pretrained"        # Where to store downloaded pretrained base models
+  experiments_dir: "experiments"      # Where Ultralytics will save training runs
+  trained_models_dir: "trained_models" # Where the best exported models will be copied
