@@ -159,10 +159,14 @@ class DatasetService:
             Path: The fully resolved absolute path.
         """
         path = Path(relative_path)
+
         if path.is_absolute():
             return path
-            
-        # Typically YOLO datasets structure paths relative to the yaml file's location
+
+        # Handle Roboflow export seperti "../train/images"
+        if relative_path.startswith("../"):
+            path = Path(relative_path.replace("../", "", 1))
+
         return (self.dataset_dir / path).resolve()
 
     def _count_images(self, directory: Path) -> int:

@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+import yaml
 from roboflow import Roboflow
 
 from utils.config import ConfigLoader
@@ -109,6 +110,7 @@ class RoboflowService:
                 logger.info(f"Dataset moved to target directory: {target_dir}")
 
             self.dataset_path = target_dir
+            self._normalize_dataset_yaml()
                 
             logger.info("Dataset downloaded successfully.")
             
@@ -116,6 +118,33 @@ class RoboflowService:
             error_msg = f"Failed to download dataset from Roboflow: {e}"
             logger.error(error_msg)
             raise ValueError(error_msg)
+
+    def _normalize_dataset_yaml(self) -> None:
+        """Normalizes Roboflow-exported subset paths inside dataset YAML.
+
+        Converts paths like "../train/images" into "train/images" so that
+        dataset consumers can resolve paths consistently from dataset root.
+        """
+        yaml_path = self._get_yaml_path()
+
+        with open(yaml_path, "r", encoding="utf-8") as file:
+            data = yaml.safe_load(file) or {}
+
+        if not isinstance(data, dict):
+            logger.warning(f"Skipping YAML normalization because format is not a mapping: {yaml_path}")
+            return
+
+        normalized = False
+        for key in ["train", "val", "test"]:
+            value = data.get(key)
+            if isinstance(value, str) and value.startswith("../"):
+                data[key] = value.replace("../", "", 1)
+                normalized = True
+
+        if normalized:
+            with open(yaml_path, "w", encoding="utf-8") as file:
+                yaml.safe_dump(data, file, sort_keys=False, allow_unicode=True)
+            logger.info(f"Normalized dataset YAML paths at: {yaml_path}")
 
     def _get_yaml_path(self) -> Path:
         """Retrieves and validates the path to the dataset's data.yaml configuration.

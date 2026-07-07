@@ -38,8 +38,17 @@ class TrainingService:
         self.train_config = self.config.get("training", {})
         self.val_config = self.config.get("validation", {})
         self.output_config = self.config.get("output", {})
-        
-        self.project_name = self.config.get("project", {}).get("name", "YOLO11_Run")
+
+        # Resolve paths from framework root, not process working directory,
+        # to keep this project standalone even when invoked externally.
+        self.framework_root = Path(__file__).resolve().parent.parent
+        self.output_dir = self._resolve_output_dir()
+        self.experiment_name = str(
+            self.train_config.get(
+                "experiment_name",
+                self.config.get("project", {}).get("name", "YOLO11_Run"),
+            )
+        ).strip() or "YOLO11_Run"
 
     def run_training(self, data_yaml_path: str) -> str:
         """Executes the YOLO11 model training and subsequent validation.
@@ -55,7 +64,7 @@ class TrainingService:
         """
         device = self._select_device()
         model_path = self._get_pretrained_path()
-        experiments_dir = self.output_config.get("experiments_dir", "experiments")
+        experiments_dir = str(self.output_dir)
         
         logger.info(f"Loading YOLO11 model from: {model_path}")
         try:
@@ -71,7 +80,7 @@ class TrainingService:
         train_kwargs = {
             "data": data_yaml_path,
             "project": experiments_dir,
-            "name": self.project_name,
+            "name": self.experiment_name,
             "epochs": self.train_config.get("epochs", 100),
             "batch": self.train_config.get("batch", 16),
             "imgsz": self.train_config.get("imgsz", 640),
@@ -84,6 +93,12 @@ class TrainingService:
             "exist_ok": self.train_config.get("exist_ok", False),
         }
         
+        logger.info("=" * 60)
+        logger.info(f"Framework Root : {self.framework_root}")
+        logger.info(f"Output Dir     : {self.output_dir}")
+        logger.info(f"Experiment     : {self.experiment_name}")
+        logger.info(f"YOLO Project   : {experiments_dir}")
+        logger.info("=" * 60)
         try:
             # Training Phase
             model.train(**train_kwargs)
@@ -109,6 +124,21 @@ class TrainingService:
         # Retrieve the best model path
         best_model_path = self._get_best_model_path(model, experiments_dir)
         return str(best_model_path)
+
+    def _resolve_output_dir(self) -> Path:
+        """Resolves training output directory to an absolute framework-local path."""
+        output_dir_cfg = str(
+            self.train_config.get(
+                "output_dir",
+                self.output_config.get("experiments_dir", "experiments"),
+            )
+        ).strip()
+
+        output_path = Path(output_dir_cfg).expanduser()
+        if not output_path.is_absolute():
+            output_path = self.framework_root / output_path
+
+        return output_path.resolve()
 
     def _select_device(self) -> str:
         """Determines the appropriate device to run the model on.
@@ -202,7 +232,7 @@ class TrainingService:
         else:
             # Fallback path reconstruction based on project and name parameters
             # Assumes exist_ok=True or naming didn't increment (i.e. name1, name2)
-            project_dir = Path(experiments_dir) / self.project_name
+            project_dir = Path(experiments_dir) / self.experiment_name
             best_pt = project_dir / "weights" / "best.pt"
             
         if not best_pt.exists():
