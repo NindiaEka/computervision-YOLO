@@ -1,95 +1,91 @@
-# Computer Vision Training Framework
+# Computer Vision Framework
 
-Framework internal untuk training Object Detection berbasis Python dan Ultralytics YOLO11.
+Framework ini adalah Computer Vision Framework berbasis Python yang saat ini mendukung dua pipeline utama:
 
-Fokus utama framework ini adalah reusability lintas proyek, arsitektur modular, dan pipeline training yang konsisten dari data ingestion hingga export model final.
+1. Training Pipeline untuk workflow dataset hingga model export.
+2. Video Processing Pipeline untuk workflow video ke frame extraction beserta summary artefak run.
 
-## Overview
-
-Framework ini menyediakan alur end-to-end berikut:
-
-1. Load konfigurasi terpusat dari YAML.
-2. Ambil dataset dari Roboflow jika belum tersedia lokal.
-3. Validasi struktur dataset sebelum training.
-4. Training dan validation model YOLO11.
-5. Export model terbaik ke direktori model produksi.
-6. Logging terstruktur untuk observability proses.
-
-Framework didesain dengan prinsip berikut:
+Framework mempertahankan pola arsitektur yang konsisten:
 
 - Clean Architecture
-- Single Responsibility Principle
 - Dependency Injection
-- Modular dan mudah diuji
-- Konsisten untuk CPU dan GPU environment
+- Scripts as entry points only
+- Business logic di service dan pipeline
 
-## Architecture
+## Arsitektur
 
-Komponen utama framework:
+### Pola Umum
 
-- ConfigLoader
-	- Memuat konfigurasi dari YAML sekali di composition root.
-- RoboflowService
-	- Menyiapkan dataset dari Roboflow atau dataset lokal.
-- DatasetService
-	- Validasi data.yaml, subset folder, jumlah kelas, dan ringkasan dataset.
-- TrainingService
-	- Menjalankan training dan validation menggunakan Ultralytics YOLO11.
-- ExportService
-	- Menyalin best.pt ke trained_models dengan penamaan aman.
-- TrainingPipeline
-	- Orchestrator yang mengoordinasikan seluruh flow melalui public API service.
-- scripts/train.py
-	- Entry point tipis tanpa business logic.
+Setiap flow dijalankan dengan pola berikut:
 
-### High-Level Flow
+1. scripts/* sebagai CLI entry point tipis.
+2. pipelines/* sebagai orchestrator urutan proses.
+3. services/* sebagai tempat business logic.
+4. utils/* sebagai shared utility (config dan logging).
 
-```mermaid
-flowchart TD
-		A[scripts/train.py] --> B[ConfigLoader]
-		B --> C[TrainingPipeline]
-		C --> D[RoboflowService]
-		D --> E[DatasetService]
-		E --> F[TrainingService]
-		F --> G[ExportService]
-		G --> H[trained_models]
-```
+Dengan pola ini, logic tetap modular, testable, dan mudah diperluas tanpa memengaruhi pipeline yang sudah stabil.
 
-## Folder Structure
+### Training Pipeline
+
+Alur training:
+
+1. ConfigLoader memuat konfigurasi.
+2. RoboflowService menyiapkan dataset.
+3. DatasetService memvalidasi dataset.
+4. TrainingService menjalankan training dan validation YOLO.
+5. ExportService menyalin best model ke trained_models.
+
+### Video Processing Pipeline
+
+Alur video processing:
+
+1. ConfigLoader memuat konfigurasi.
+2. VideoProcessingPipeline membuat run ID.
+3. VideoService membaca video dan metadata.
+4. FrameExtractionService mengekstrak frame.
+5. Pipeline membangun summary, menyimpan summary.json dan config_snapshot.yaml.
+
+## Struktur Folder
 
 ```text
 computer-vision/
 ├── configs/
 │   └── config.yaml
 ├── datasets/
-├── pretrained/
-├── trained_models/
 ├── experiments/
+├── pipelines/
+│   └── video_processing_pipeline.py
+├── pretrained/
+├── scripts/
+│   ├── extract_frames.py
+│   └── train.py
 ├── services/
 │   ├── dataset_service.py
 │   ├── export_service.py
+│   ├── frame_extraction_service.py
 │   ├── roboflow_service.py
 │   ├── training_pipeline.py
-│   └── training_service.py
+│   ├── training_service.py
+│   └── video_service.py
+├── trained_models/
 ├── utils/
 │   ├── config.py
 │   └── logger.py
-├── scripts/
-│   └── train.py
+├── pyproject.toml
 ├── requirements.txt
 └── README.md
 ```
 
-## Installation
+## Instalasi
 
-### 1. Clone Repository
+1. Clone repository
 
 ```bash
 git clone <repository-url>
 cd computer-vision
 ```
 
-### 2. Create Virtual Environment (Recommended)
+2. Buat virtual environment
 
 ```bash
 python -m venv .venv
@@ -101,100 +97,69 @@ Windows PowerShell:
 .venv\Scripts\Activate.ps1
 ```
 
-Linux or macOS:
+Linux/macOS:
 
 ```bash
 source .venv/bin/activate
 ```
 
-### 3. Install Dependencies
-
-Pip:
+3. Install dependency
 
 ```bash
 pip install -r requirements.txt
 ```
 
-UV (opsional):
+Opsional menggunakan UV:
 
 ```bash
 uv pip install -r requirements.txt
 ```
 
-## Requirements
+## Prasyarat
 
 - Python 3.12+
+- PyTorch
 - Ultralytics
 - Roboflow SDK
-- PyYAML
-- PyTorch
+- OpenCV (cv2)
+- FFmpeg tersedia di PATH (khusus frame extraction)
 
-Catatan:
+## Konfigurasi
 
-- GPU training membutuhkan CUDA-compatible PyTorch build.
-- CPU mode tetap didukung otomatis jika GPU tidak tersedia.
-
-## Configuration
-
-Konfigurasi utama berada di file berikut:
+Semua pipeline menggunakan satu konfigurasi utama:
 
 - configs/config.yaml
 
-Bagian penting konfigurasi:
+Section yang digunakan:
 
 - project
-	- Metadata proyek dan nama eksperimen.
 - roboflow
-	- Workspace, project, version, dan API key untuk dataset source.
 - model
-	- pretrained_path untuk nama model Ultralytics atau path lokal.
 - training
-	- Parameter training seperti epochs, batch, imgsz, optimizer, device.
 - validation
-	- Parameter validasi seperti conf dan iou.
 - output
-	- Direktori datasets, experiments, pretrained, dan trained_models.
+- video
 
-Contoh minimal:
+Contoh section video yang direkomendasikan:
 
 ```yaml
-project:
-	name: "YOLO11_Object_Detection"
-
-roboflow:
-	workspace: "your-workspace"
-	project: "your-project"
-	version: 1
-	api_key: "YOUR_ROBOFLOW_API_KEY"
-
-model:
-	pretrained_path: "yolo11n.pt"
-
-training:
-	epochs: 100
-	batch: 16
-	imgsz: 640
-	device: ""
-
-output:
-	experiments_dir: "experiments"
-	trained_models_dir: "trained_models"
+video:
+  input_dir: "data/videos"
+  output_dir: "data/frames"
+  mode: "fps"                # fps | interval
+  fps: 1
+  interval_seconds: 5
+  image_format: "jpg"
 ```
 
-## Training Flow
+Catatan:
 
-Urutan proses training di pipeline:
+- mode fps menggunakan nilai fps.
+- mode interval menggunakan interval_seconds.
 
-1. ConfigLoader memuat konfigurasi.
-2. RoboflowService memastikan dataset tersedia.
-3. DatasetService memvalidasi dataset.
-4. DatasetService menampilkan ringkasan dataset.
-5. TrainingService menjalankan training dan validation.
-6. TrainingService mengembalikan path best.pt.
-7. ExportService menyalin model ke trained_models.
-8. TrainingPipeline mencetak ringkasan akhir proses.
+## Menjalankan Pipeline
 
-## Cara Menjalankan Training
+### 1) Training Pipeline
 
 Jalankan dari root project:
 
@@ -202,31 +167,66 @@ Jalankan dari root project:
 python scripts/train.py
 ```
 
-Jika sukses, log akan menampilkan:
+Atau:
 
-- status validasi dataset
-- progres training
-- lokasi best.pt
-- lokasi model hasil export
-- ringkasan durasi proses
+```bash
+uv run python -m scripts.train
+```
 
-## Output yang Dihasilkan
+Output utama:
 
-Setelah training selesai, output utama:
+- experiments/ untuk artefak run training
+- trained_models/ untuk model hasil export
 
-- experiments/
-	- Artefak run Ultralytics (weights, metrics, plots, logs).
-- trained_models/
-	- Model hasil export untuk digunakan ke tahap deployment.
-	- Jika nama file sudah ada, framework menambahkan timestamp untuk mencegah overwrite.
+### 2) Video Processing Pipeline
 
-## Future Development
+Jalankan dari root project:
 
-Rencana pengembangan berikutnya:
+```bash
+python scripts/extract_frames.py
+```
 
-1. Penambahan automated testing untuk unit dan integration test.
-2. Validasi skema konfigurasi yang lebih ketat (typed schema).
-3. Support experiment tracking terintegrasi (misalnya MLflow atau W and B).
-4. Export format tambahan (ONNX, TensorRT, OpenVINO) melalui service terpisah.
-5. Dukungan multi-dataset dan curriculum training.
-6. Integrasi CI pipeline untuk lint, test, dan quality gate.
+Atau:
+
+```bash
+uv run python -m scripts.extract_frames
+```
+
+Output utama (per run):
+
+```text
+data/frames/
+└── run_YYYYMMDD_HHMMSS/
+    ├── summary.json
+    ├── config_snapshot.yaml
+    ├── <video_1>/
+    │   ├── frame_000001.jpg
+    │   └── ...
+    └── <video_2>/
+        ├── frame_000001.jpg
+        └── ...
+```
+
+## Ringkasan Tanggung Jawab Komponen
+
+- scripts/train.py
+  - Entry point Training Pipeline.
+- scripts/extract_frames.py
+  - Entry point Video Processing Pipeline.
+- services/training_pipeline.py
+  - Orchestrator training flow.
+- pipelines/video_processing_pipeline.py
+  - Orchestrator video processing flow.
+- services/video_service.py
+  - Discovery dan metadata video input.
+- services/frame_extraction_service.py
+  - Ekstraksi frame dari video via FFmpeg.
+
+## Troubleshooting Singkat
+
+1. Video processing gagal di tahap ekstraksi
+   - Pastikan FFmpeg sudah terpasang dan bisa dipanggil dari terminal.
+2. Video tidak ditemukan
+   - Pastikan video.input_dir pada config mengarah ke folder yang benar.
+3. Training gagal download dataset
+   - Periksa roboflow.api_key, workspace, project, dan version.

@@ -47,13 +47,39 @@ training:
 
 # ------------------------------------------------------------------------------
 # Validation Configurations
-# Ultralytics YOLO validation arguments
+# This framework has two validation modes:
+# 1) Automatic Validation: runs after training in scripts/train.py
+# 2) Standalone Validation: runs via scripts/validate.py without retraining
+#
+# Notes:
+# - This section is intended for Standalone Validation configuration.
+# - Automatic Validation uses training flow internals and validation split behavior.
 # ------------------------------------------------------------------------------
 validation:
-  conf: 0.25                          # Confidence threshold for validation
-  iou: 0.6                            # NMS IoU threshold for validation
-  half: True                          # Use half precision (FP16)
-  plots: True                         # Save validation plots
+  #model_path: "trained_models/Person_Object_Detection.pt" # Model (.pt) for standalone validation
+  #dataset_yaml: "datasets/cctv-naxyo-bw63v-1/data.yaml"   # Dataset YAML path for standalone validation
+  #dataset_yaml_path: "datasets/cctv-naxyo-bw63v-1/data.yaml" # Compatibility key used by current ValidationService
+  #split: "test"                        # Dataset split for standalone validation (val or test)
+  output_dir: "experiments/validation" # Output directory for standalone validation artifacts
+  #device: "cpu"                        # Device for standalone validation (cpu, 0, 0,1)
+  conf: 0.25                            # Confidence threshold for standalone validation
+  iou: 0.6                              # NMS IoU threshold for standalone validation
+  half: false                           # Use half precision (FP16) for validation where supported
+  plots: true                           # Save plots such as confusion matrix and curves
+
+# ------------------------------------------------------------------------------
+# Video Processing Configurations
+# Settings for CCTV video input and frame extraction process
+# ------------------------------------------------------------------------------
+video:
+  input_dir: "data/videos"            # Directory for CCTV video input files
+  output_dir: "data/frames"           # Directory for extracted frame outputs
+  extraction:
+    mode: "fps"                      # Extraction mode (fps or interval)
+    fps: 1                            # Frames per second when mode is fps
+    interval_seconds: 5               # Frame interval in seconds when mode is interval
+  image_format: "jpg"                # Output frame image format (jpg or png)
+  ffmpeg_path: "ffmpeg"              # FFmpeg executable path or command
 
 # ------------------------------------------------------------------------------
 # Output & System Directories
