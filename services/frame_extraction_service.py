@@ -49,6 +49,7 @@ class FrameExtractionService:
         fps (float): Target frames per second when mode is fps.
         interval_seconds (float): Capture interval in seconds when mode is interval.
         image_format (str): Output image format/extension.
+        ffmpeg_path (str): FFmpeg executable command or absolute path.
     """
 
     SUPPORTED_IMAGE_FORMATS = {"jpg", "jpeg", "png", "bmp", "webp", "tiff"}
@@ -72,6 +73,7 @@ class FrameExtractionService:
             self.config = config_loader.load()
 
         self.video_config = self.config.get("video", {})
+        extraction_cfg = self.video_config.get("extraction", {})
 
         framework_root = Path(__file__).resolve().parent.parent
         output_dir_cfg = str(self.video_config.get("output_dir", "data/frames")).strip()
@@ -80,12 +82,20 @@ class FrameExtractionService:
             output_path = framework_root / output_path
         self.output_root = output_path.resolve()
 
-        self.mode = str(self.video_config.get("mode", "fps")).strip().lower()
-        self.fps = float(self.video_config.get("fps", 1))
-        self.interval_seconds = float(self.video_config.get("interval_seconds", 5))
+        self.mode = str(
+            extraction_cfg.get("mode", self.video_config.get("mode", "fps"))
+        ).strip().lower()
+        self.fps = float(extraction_cfg.get("fps", self.video_config.get("fps", 1)))
+        self.interval_seconds = float(
+            extraction_cfg.get(
+                "interval_seconds",
+                self.video_config.get("interval_seconds", 5),
+            )
+        )
 
         image_format = str(self.video_config.get("image_format", "jpg")).strip().lower()
         self.image_format = image_format.lstrip(".")
+        self.ffmpeg_path = str(self.video_config.get("ffmpeg_path", "ffmpeg")).strip()
 
         self._validate_configuration()
 
@@ -164,14 +174,17 @@ class FrameExtractionService:
             ValueError: If mode, rate, or image format configuration is invalid.
         """
         if self.mode not in {"fps", "interval"}:
-            raise ValueError("video.mode must be either 'fps' or 'interval'.")
+            raise ValueError("video.extraction.mode must be either 'fps' or 'interval'.")
 
         if self.mode == "fps" and self.fps <= 0:
-            raise ValueError("video.fps must be greater than 0 when mode is 'fps'.")
+            raise ValueError(
+                "video.extraction.fps must be greater than 0 when mode is 'fps'."
+            )
 
         if self.mode == "interval" and self.interval_seconds <= 0:
             raise ValueError(
-                "video.interval_seconds must be greater than 0 when mode is 'interval'."
+                "video.extraction.interval_seconds must be greater than 0 when mode "
+                "is 'interval'."
             )
 
         if self.image_format not in self.SUPPORTED_IMAGE_FORMATS:
@@ -181,15 +194,41 @@ class FrameExtractionService:
             )
 
     def _validate_ffmpeg_available(self) -> None:
-        """Ensures FFmpeg binary is available in system PATH.
+        """Ensures configured FFmpeg executable is available and runnable.
 
         Raises:
-            RuntimeError: If ffmpeg executable cannot be found.
+            RuntimeError: If ffmpeg executable cannot be resolved or executed.
         """
-        if shutil.which("ffmpeg") is None:
+        ffmpeg_candidate = self.ffmpeg_path
+        candidate_path = Path(ffmpeg_candidate).expanduser()
+
+        # Priority 1: command available in PATH.
+        in_path = shutil.which(ffmpeg_candidate)
+
+        # Priority 2: absolute file path provided explicitly.
+        if candidate_path.is_absolute() and not candidate_path.is_file():
             raise RuntimeError(
-                "FFmpeg executable was not found in PATH. Please install FFmpeg first."
+                "Configured FFmpeg path is absolute but file does not exist: "
+                f"{candidate_path}"
             )
+
+        # Priority 3: runtime probe to handle aliases/wrappers not resolved by which.
+        try:
+            subprocess.run(
+                [ffmpeg_candidate, "-version"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True,
+            )
+        except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+            source_hint = (
+                "PATH" if in_path is not None else "alias-or-custom-command"
+            )
+            raise RuntimeError(
+                "FFmpeg executable is not available or failed to run. "
+                f"Configured ffmpeg_path='{ffmpeg_candidate}', source='{source_hint}'. "
+                "Verify installation and config video.ffmpeg_path."
+            ) from exc
 
     def _extract_single_video(
         self,
@@ -272,7 +311,7 @@ class FrameExtractionService:
             filter_expr = f"fps=1/{self.interval_seconds}"
 
         return [
-            "ffmpeg",
+            self.ffmpeg_path,
             "-hide_banner",
             "-loglevel",
             "error",

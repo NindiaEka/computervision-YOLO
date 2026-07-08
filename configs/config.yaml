@@ -1,6 +1,5 @@
 # ==============================================================================
 # Framework Configuration File
-# Computer Vision Training with Ultralytics YOLO11
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -46,26 +45,28 @@ training:
   exist_ok: False                     # Whether to overwrite existing experiment folder
 
 # ------------------------------------------------------------------------------
-# Validation Configurations
-# This framework has two validation modes:
-# 1) Automatic Validation: runs after training in scripts/train.py
-# 2) Standalone Validation: runs via scripts/validate.py without retraining
+# Standalone Validation Configurations
 #
-# Notes:
-# - This section is intended for Standalone Validation configuration.
-# - Automatic Validation uses training flow internals and validation split behavior.
+# NOTE:
+# scripts/train.py already performs automatic validation after every training run.
+#
+# This section is ONLY used by:
+#   uv run python -m scripts.validate
+#
+# It allows evaluating an existing trained model (.pt) against any compatible
+# dataset without running training again.
 # ------------------------------------------------------------------------------
 validation:
-  #model_path: "trained_models/Person_Object_Detection.pt" # Model (.pt) for standalone validation
-  #dataset_yaml: "datasets/cctv-naxyo-bw63v-1/data.yaml"   # Dataset YAML path for standalone validation
-  #dataset_yaml_path: "datasets/cctv-naxyo-bw63v-1/data.yaml" # Compatibility key used by current ValidationService
-  #split: "test"                        # Dataset split for standalone validation (val or test)
-  output_dir: "experiments/validation" # Output directory for standalone validation artifacts
-  #device: "cpu"                        # Device for standalone validation (cpu, 0, 0,1)
-  conf: 0.25                            # Confidence threshold for standalone validation
-  iou: 0.6                              # NMS IoU threshold for standalone validation
-  half: false                           # Use half precision (FP16) for validation where supported
-  plots: true                           # Save plots such as confusion matrix and curves
+  model_path: "trained_models/Person_Object_Detection.pt"
+  dataset_yaml: "datasets/cctv-naxyo-bw63v-1/data.yaml"
+  dataset_yaml_path: "datasets/cctv-naxyo-bw63v-1/data.yaml"
+  split: "test"
+  output_dir: "experiments/validation"
+  device: "cpu"
+  conf: 0.25
+  iou: 0.6
+  half: false
+  plots: true
 
 # ------------------------------------------------------------------------------
 # Video Processing Configurations

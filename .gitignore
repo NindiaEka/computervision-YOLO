@@ -11,6 +11,14 @@ __pycache__/
 experiments/
 datasets/
 trained_models/
+data/frames/
+data/videos/
+
+# Input media
+*.mp4
+
+# Temporary office files
+~$*.docx
 
 # Model files
 *.pt
