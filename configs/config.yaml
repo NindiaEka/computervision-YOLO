@@ -17,7 +17,7 @@ roboflow:
   workspace: "1-wzlq9"    # Roboflow workspace name
   project: "cctv-naxyo-bw63v"        # Roboflow project name
   version: 1                          # Dataset version to download
-  api_key: "0htZvFKkU7BablvNYlHh"    # Your Roboflow API Key
+  api_key: "APIKEY"    # Your Roboflow API Key
 
 # ------------------------------------------------------------------------------
 # Model Configurations
