@@ -93,12 +93,7 @@ class TrainingService:
             "exist_ok": self.train_config.get("exist_ok", False),
         }
         
-        logger.info("=" * 60)
-        logger.info(f"Framework Root : {self.framework_root}")
-        logger.info(f"Output Dir     : {self.output_dir}")
-        logger.info(f"Experiment     : {self.experiment_name}")
-        logger.info(f"YOLO Project   : {experiments_dir}")
-        logger.info("=" * 60)
+
         try:
             # Training Phase
             model.train(**train_kwargs)

@@ -1,6 +1,5 @@
 # ==============================================================================
 # Framework Configuration File
-# Computer Vision Training with Ultralytics YOLO11
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -34,7 +33,7 @@ model:
 training:
   output_dir: "experiments"            # Base directory for Ultralytics training runs
   experiment_name: "Person_Object_Detection"  # Run folder name under output_dir
-  epochs: 1                           # Number of training epochs
+  epochs: 1                         # Number of training epochs
   batch: 16                           # Batch size (set to -1 for AutoBatch)
   imgsz: 640                          # Image size (pixels)
   device: "cpu"                       # Device to run on (e.g., 'cpu', '0', '0,1'). Leave empty for auto-detect
@@ -46,14 +45,66 @@ training:
   exist_ok: False                     # Whether to overwrite existing experiment folder
 
 # ------------------------------------------------------------------------------
-# Validation Configurations
-# Ultralytics YOLO validation arguments
+# Standalone Validation Configurations
+#
+# NOTE:
+# scripts/train.py already performs automatic validation after every training run.
+#
+# This section is ONLY used by:
+#   uv run python -m scripts.validate
+#
+# It allows evaluating an existing trained model (.pt) against any compatible
+# dataset without running training again.
 # ------------------------------------------------------------------------------
 validation:
-  conf: 0.25                          # Confidence threshold for validation
-  iou: 0.6                            # NMS IoU threshold for validation
-  half: True                          # Use half precision (FP16)
-  plots: True                         # Save validation plots
+  model_path: "trained_models/Person_Object_Detection.pt"
+  dataset_yaml: "datasets/cctv-naxyo-bw63v-1/data.yaml"
+  dataset_yaml_path: "datasets/cctv-naxyo-bw63v-1/data.yaml"
+  split: "test"
+  output_dir: "experiments/validation"
+  device: "cpu"
+  conf: 0.25
+  iou: 0.6
+  half: false
+  plots: true
+
+# ------------------------------------------------------------------------------
+# Standalone Inference Configurations
+#
+# NOTE:
+# This section is used by:
+#   uv run python -m scripts.inference
+#
+# It runs prediction using an existing trained model (.pt) without
+# training or validation steps.
+# ------------------------------------------------------------------------------
+inference:
+  model_path: "trained_models/person-crowd.pt"  # .pt model path used for inference
+  input_dir: "data/inference"                   # Input folder for inference files (images/videos)
+  output_dir: "experiments/inference"           # Output folder for prediction results
+  device: "cpu"                                 # Device: cpu / 0 / 0,1 / etc
+  conf: 0.25                                     # Minimum confidence threshold
+  iou: 0.5                                       # IoU threshold for NMS
+  imgsz: 640                                     # Input frame/image size
+  max_det: 300                                   # Maximum detections per frame
+  half: false                                    # Use FP16 if supported by device
+  save_txt: false                                # Save detections to txt files
+  save_conf: true                                # Include confidence when save_txt=true
+  verbose: false                                 # Enable Ultralytics verbose logs
+
+# ------------------------------------------------------------------------------
+# Video Processing Configurations
+# Settings for CCTV video input and frame extraction process
+# ------------------------------------------------------------------------------
+video:
+  input_dir: "data/videos"            # Directory for CCTV video input files
+  output_dir: "data/frames"           # Directory for extracted frame outputs
+  extraction:
+    mode: "fps"                      # Extraction mode (fps or interval)
+    fps: 0.5                            # Frames per second when mode is fps
+    interval_seconds: 5               # Frame interval in seconds when mode is interval
+  image_format: "jpg"                # Output frame image format (jpg or png)
+  ffmpeg_path: "ffmpeg"              # FFmpeg executable path or command
 
 # ------------------------------------------------------------------------------
 # Output & System Directories

@@ -1,4 +1,4 @@
-from services.training_pipeline import TrainingPipeline
+from pipelines.training_pipeline import TrainingPipeline
 from utils.config import ConfigLoader
 from utils.logger import Logger
 
